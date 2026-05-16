@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { supabase } from './supabase.js'
 
 const initialCompras = [
   { id: 1, data: "Primeira compra", descricao: "Kit Especial (Álbum Capa Dura Dourado + 60 pacotes)", pacotes: 60, valor: 500, tipo: "kit" },
@@ -145,6 +146,20 @@ export default function AlbumTracker() {
     return init;
   });
 
+  const [user, setUser] = useState(null)
+  const [loadingAuth, setLoadingAuth] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setLoadingAuth(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
   const totalGasto = compras.reduce((acc, c) => acc + c.valor, 0);
   const totalPacotes = compras.reduce((acc, c) => acc + c.pacotes, 0);
   const totalFigurinhas = totalPacotes * 7 + FIGURINHAS_PRESENTE;
@@ -196,6 +211,16 @@ export default function AlbumTracker() {
   }
   function removeCompra(id) {
     setCompras(prev => { const next = prev.filter(c => c.id !== id); saveStorage('compras', next); return next; });
+  }
+
+  async function loginGoogle() {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'https://album-copa-theta.vercel.app' }
+    })
+  }
+  async function logout() {
+    await supabase.auth.signOut()
   }
 
   // Monta dados enriquecidos por seção
@@ -328,6 +353,20 @@ export default function AlbumTracker() {
     }).filter(Boolean);
   }
 
+  if (loadingAuth) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0a0a0f',color:'#f0c060',fontSize:16}}>Carregando...</div>
+
+  if (!user) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0a0a0f',gap:24,padding:32}}>
+      <div style={{fontSize:48}}>⚽🏆</div>
+      <h1 style={{color:'#f0c060',fontSize:22,fontWeight:'bold',textAlign:'center',textShadow:'0 0 24px rgba(240,192,96,0.4)'}}>ÁLBUM DA COPA 2026</h1>
+      <p style={{color:'#a07030',fontSize:13,letterSpacing:'0.1em'}}>FSAID & ROMEO</p>
+      <button onClick={loginGoogle} style={{marginTop:16,padding:'14px 32px',background:'white',border:'none',borderRadius:12,fontSize:15,fontWeight:'bold',cursor:'pointer',display:'flex',alignItems:'center',gap:12,color:'#333'}}>
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+        Entrar com Google
+      </button>
+    </div>
+  )
+
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0f", fontFamily: "'Georgia', serif", paddingBottom: 60 }}>
       {/* Header */}
@@ -336,6 +375,10 @@ export default function AlbumTracker() {
         <div style={{ fontSize: 28, marginBottom: 2 }}>⚽🏆</div>
         <h1 style={{ margin: 0, color: "#f0c060", fontSize: "clamp(15px, 5vw, 21px)", fontWeight: "bold", letterSpacing: "0.04em", textShadow: "0 0 24px rgba(240,192,96,0.4)" }}>ÁLBUM DA COPA 2026</h1>
         <p style={{ margin: "3px 0 0", color: "#a07030", fontSize: 11, letterSpacing: "0.1em" }}>FSAID & ROMEO</p>
+        <div style={{marginTop:8,display:'flex',alignItems:'center',gap:10,justifyContent:'center'}}>
+          <span style={{color:'#666',fontSize:11}}>{user.email}</span>
+          <button onClick={logout} style={{background:'none',border:'1px solid #444',borderRadius:6,color:'#666',fontSize:10,padding:'3px 8px',cursor:'pointer'}}>Sair</button>
+        </div>
         <div style={{ marginTop: 10, maxWidth: 320, margin: "10px auto 0" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
             <span style={{ color: "#777", fontSize: 11 }}>{totalColadas} coladas</span>
