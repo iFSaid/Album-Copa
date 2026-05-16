@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/fsaid/.nvm/**)",
+      "Read(//Users/fsaid/.nvm/versions/**)",
+      "Bash(export PATH=\"$HOME/.nvm/versions/node/$\\(ls ~/.nvm/versions/node)",
+      "Bash(find /usr /opt /home ~/Library -name \"npm\" -type f 2>/dev/null | head -10; find /usr /opt -name \"node\" -type f 2>/dev/null | head -5)",
+      "Bash(ls /opt/homebrew/bin/ | grep -E \"node|npm|pnpm|bun\" 2>/dev/null; ls /opt/pkg/env/active/bin/ | grep -E \"node|npm\" 2>/dev/null; ls /opt/pmk/env/global/bin/ | grep -E \"node|npm\" 2>/dev/null)",
+      "Bash(ls /opt/homebrew/ 2>/dev/null || echo \"homebrew not at /opt/homebrew\"; ls /usr/local/ 2>/dev/null | head -20)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Bash(bun --version)",
+      "Bash(curl -fsSL https://nodejs.org/dist/v20.19.1/node-v20.19.1-darwin-arm64.tar.gz -o /tmp/node.tar.gz)",
+      "Bash(tar -xzf /tmp/node.tar.gz -C /tmp/)",
+      "Read(//tmp/node-v20.19.1-darwin-arm64/**)",
+      "Bash(export PATH=\"/tmp/node-v20.19.1-darwin-arm64/bin:$PATH\")",
+      "Bash(npm --version)",
+      "Bash(npm run *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
