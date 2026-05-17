@@ -150,25 +150,24 @@ export default function AlbumTracker() {
     async function carregarDados() {
       setLoadingDados(true)
       try {
-        const { data: comprasData, error: comprasError } = await supabase
-          .from('compras')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('id')
-        if (comprasError) throw comprasError
+        const { data: comprasData, error: erroCompras } = await supabase
+          .from('compras').select('*').eq('user_id', user.id).order('id')
+
+        if (erroCompras) throw erroCompras
+
         if (comprasData && comprasData.length > 0) {
           setCompras(comprasData)
         } else {
-          const iniciais = initialCompras.map(c => ({ ...c, user_id: user.id, id: undefined }))
-          const { data, error: insertError } = await supabase.from('compras').insert(iniciais).select()
-          if (insertError) throw insertError
-          if (data) setCompras(data)
+          const iniciais = initialCompras.map(({ id, ...c }) => ({ ...c, user_id: user.id }))
+          const { data } = await supabase.from('compras').insert(iniciais).select()
+          setCompras(data || initialCompras)
         }
-        const { data: figsData, error: figsError } = await supabase
-          .from('figurinhas')
-          .select('*')
-          .eq('user_id', user.id)
-        if (figsError) throw figsError
+
+        const { data: figsData, error: erroFigs } = await supabase
+          .from('figurinhas').select('*').eq('user_id', user.id)
+
+        if (erroFigs) throw erroFigs
+
         if (figsData && figsData.length > 0) {
           const map = {}
           figsData.forEach(f => { map[`${f.code}-${f.num}`] = f.faltando === true })
@@ -178,8 +177,10 @@ export default function AlbumTracker() {
           Object.entries(faltandoInicial).forEach(([code, nums]) => {
             nums.forEach(n => rows.push({ user_id: user.id, code, num: String(n), faltando: true }))
           })
-          const { error: rowsError } = await supabase.from('figurinhas').insert(rows)
-          if (rowsError) throw rowsError
+          const BATCH = 500
+          for (let i = 0; i < rows.length; i += BATCH) {
+            await supabase.from('figurinhas').insert(rows.slice(i, i + BATCH))
+          }
           const init = {}
           Object.entries(faltandoInicial).forEach(([code, nums]) => {
             nums.forEach(n => { init[`${code}-${n}`] = true })
@@ -187,7 +188,14 @@ export default function AlbumTracker() {
           setFaltando(init)
         }
       } catch (err) {
-        console.error('[album-copa] Erro ao carregar dados do Supabase:', err)
+        console.error('Erro ao carregar dados:', err)
+        // Fallback para estado local
+        setCompras(initialCompras)
+        const init = {}
+        Object.entries(faltandoInicial).forEach(([code, nums]) => {
+          nums.forEach(n => { init[`${code}-${n}`] = true })
+        })
+        setFaltando(init)
       } finally {
         setLoadingDados(false)
       }
