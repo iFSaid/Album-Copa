@@ -122,30 +122,15 @@ const faltandoInicial = {
 
 const totalFaltandoInicial = Object.values(faltandoInicial).reduce((a, v) => a + v.length, 0);
 
-function loadStorage(key, fallback) {
-  try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : fallback; } catch { return fallback; }
-}
-function saveStorage(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-}
-
 export default function AlbumTracker() {
-  const [compras, setCompras] = useState(() => loadStorage('compras', initialCompras));
+  const [compras, setCompras] = useState([])
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ descricao: "", pacotes: "", valor: "" });
   const [aba, setAba] = useState("gastos");
   const [busca, setBusca] = useState("");
   const [grupoAberto, setGrupoAberto] = useState(null);
-  const [faltando, setFaltando] = useState(() => {
-    const saved = loadStorage('faltando', null);
-    if (saved) return saved;
-    const init = {};
-    Object.entries(faltandoInicial).forEach(([code, nums]) => {
-      nums.forEach(n => { init[`${code}-${n}`] = true; });
-    });
-    return init;
-  });
-
+  const [faltando, setFaltando] = useState({})
+  const [loadingDados, setLoadingDados] = useState(true)
   const [user, setUser] = useState(null)
   const [loadingAuth, setLoadingAuth] = useState(true)
 
@@ -160,6 +145,47 @@ export default function AlbumTracker() {
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    if (!user) return
+    async function carregarDados() {
+      setLoadingDados(true)
+      const { data: comprasData } = await supabase
+        .from('compras')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('id')
+      if (comprasData && comprasData.length > 0) {
+        setCompras(comprasData)
+      } else {
+        const iniciais = initialCompras.map(c => ({ ...c, user_id: user.id, id: undefined }))
+        const { data } = await supabase.from('compras').insert(iniciais).select()
+        if (data) setCompras(data)
+      }
+      const { data: figsData } = await supabase
+        .from('figurinhas')
+        .select('*')
+        .eq('user_id', user.id)
+      if (figsData && figsData.length > 0) {
+        const map = {}
+        figsData.forEach(f => { map[`${f.code}-${f.num}`] = f.faltando })
+        setFaltando(map)
+      } else {
+        const rows = []
+        Object.entries(faltandoInicial).forEach(([code, nums]) => {
+          nums.forEach(n => rows.push({ user_id: user.id, code, num: String(n), faltando: true }))
+        })
+        await supabase.from('figurinhas').insert(rows)
+        const init = {}
+        Object.entries(faltandoInicial).forEach(([code, nums]) => {
+          nums.forEach(n => { init[`${code}-${n}`] = true })
+        })
+        setFaltando(init)
+      }
+      setLoadingDados(false)
+    }
+    carregarDados()
+  }, [user])
+
   const totalGasto = compras.reduce((acc, c) => acc + c.valor, 0);
   const totalPacotes = compras.reduce((acc, c) => acc + c.pacotes, 0);
   const totalFigurinhas = totalPacotes * 7 + FIGURINHAS_PRESENTE;
@@ -169,13 +195,15 @@ export default function AlbumTracker() {
   const mediaPorPacote = totalPacotes > 0 ? (totalGasto / totalPacotes).toFixed(2) : 0;
   const pctCompleto = ((totalColadas / TOTAL_ALBUM) * 100).toFixed(1);
 
-  function toggleFaltando(code, num) {
-    const key = `${code}-${num}`;
-    setFaltando(prev => {
-      const next = { ...prev, [key]: !prev[key] };
-      saveStorage('faltando', next);
-      return next;
-    });
+  async function toggleFaltando(code, num) {
+    const key = `${code}-${num}`
+    const novoValor = !faltando[key]
+    setFaltando(prev => ({ ...prev, [key]: novoValor }))
+    await supabase.from('figurinhas')
+      .update({ faltando: novoValor })
+      .eq('user_id', user.id)
+      .eq('code', code)
+      .eq('num', String(num))
   }
 
   function exportarFaltando() {
@@ -202,17 +230,18 @@ export default function AlbumTracker() {
     }
   }
 
-  function addCompra() {
-    if (!form.descricao || !form.pacotes || !form.valor) return;
-    const nova = { id: Date.now(), data: new Date().toLocaleDateString('pt-BR'), descricao: form.descricao, pacotes: parseInt(form.pacotes), valor: parseFloat(form.valor), tipo: "pacote" };
-    setCompras(prev => { const next = [...prev, nova]; saveStorage('compras', next); return next; });
-    setForm({ descricao: "", pacotes: "", valor: "" });
-    setShowForm(false);
+  async function addCompra() {
+    if (!form.descricao || !form.pacotes || !form.valor) return
+    const nova = { user_id: user.id, data: new Date().toLocaleDateString('pt-BR'), descricao: form.descricao, pacotes: parseInt(form.pacotes), valor: parseFloat(form.valor), tipo: 'pacote' }
+    const { data } = await supabase.from('compras').insert([nova]).select()
+    if (data) setCompras(prev => [...prev, data[0]])
+    setForm({ descricao: '', pacotes: '', valor: '' })
+    setShowForm(false)
   }
-  function removeCompra(id) {
-    setCompras(prev => { const next = prev.filter(c => c.id !== id); saveStorage('compras', next); return next; });
+  async function removeCompra(id) {
+    await supabase.from('compras').delete().eq('id', id)
+    setCompras(prev => prev.filter(c => c.id !== id))
   }
-
   async function loginGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -366,6 +395,8 @@ export default function AlbumTracker() {
       </button>
     </div>
   )
+
+  if (loadingDados) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0a0a0f',color:'#f0c060',fontSize:16}}>Carregando seus dados...</div>
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0f", fontFamily: "'Georgia', serif", paddingBottom: 60 }}>
