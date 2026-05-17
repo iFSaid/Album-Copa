@@ -149,39 +149,48 @@ export default function AlbumTracker() {
     if (!user) return
     async function carregarDados() {
       setLoadingDados(true)
-      const { data: comprasData } = await supabase
-        .from('compras')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('id')
-      if (comprasData && comprasData.length > 0) {
-        setCompras(comprasData)
-      } else {
-        const iniciais = initialCompras.map(c => ({ ...c, user_id: user.id, id: undefined }))
-        const { data } = await supabase.from('compras').insert(iniciais).select()
-        if (data) setCompras(data)
+      try {
+        const { data: comprasData, error: comprasError } = await supabase
+          .from('compras')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('id')
+        if (comprasError) throw comprasError
+        if (comprasData && comprasData.length > 0) {
+          setCompras(comprasData)
+        } else {
+          const iniciais = initialCompras.map(c => ({ ...c, user_id: user.id, id: undefined }))
+          const { data, error: insertError } = await supabase.from('compras').insert(iniciais).select()
+          if (insertError) throw insertError
+          if (data) setCompras(data)
+        }
+        const { data: figsData, error: figsError } = await supabase
+          .from('figurinhas')
+          .select('*')
+          .eq('user_id', user.id)
+        if (figsError) throw figsError
+        if (figsData && figsData.length > 0) {
+          const map = {}
+          figsData.forEach(f => { map[`${f.code}-${f.num}`] = f.faltando === true })
+          setFaltando(map)
+        } else {
+          const rows = []
+          Object.entries(faltandoInicial).forEach(([code, nums]) => {
+            nums.forEach(n => rows.push({ user_id: user.id, code, num: String(n), faltando: true }))
+          })
+          const { error: rowsError } = await supabase.from('figurinhas').insert(rows)
+          if (rowsError) throw rowsError
+          const init = {}
+          Object.entries(faltandoInicial).forEach(([code, nums]) => {
+            nums.forEach(n => { init[`${code}-${n}`] = true })
+          })
+          setFaltando(init)
+        }
+      } catch (err) {
+        console.error('[album-copa] Erro ao carregar dados do Supabase:', err)
+      } finally {
+        setLoadingDados(false)
       }
-      const { data: figsData } = await supabase
-        .from('figurinhas')
-        .select('*')
-        .eq('user_id', user.id)
-      if (figsData && figsData.length > 0) {
-        const map = {}
-        figsData.forEach(f => { map[`${f.code}-${f.num}`] = f.faltando })
-        setFaltando(map)
-      } else {
-        const rows = []
-        Object.entries(faltandoInicial).forEach(([code, nums]) => {
-          nums.forEach(n => rows.push({ user_id: user.id, code, num: String(n), faltando: true }))
-        })
-        await supabase.from('figurinhas').insert(rows)
-        const init = {}
-        Object.entries(faltandoInicial).forEach(([code, nums]) => {
-          nums.forEach(n => { init[`${code}-${n}`] = true })
-        })
-        setFaltando(init)
-      }
-      setLoadingDados(false)
     }
     carregarDados()
   }, [user])
