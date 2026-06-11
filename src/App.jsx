@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from './supabase.js'
+import Legends from './Legends.jsx'
 
 const initialCompras = [
   { id: 1, data: "Primeira compra", descricao: "Kit Especial (Álbum Capa Dura Dourado + 60 pacotes)", pacotes: 60, valor: 500, tipo: "kit" },
@@ -663,6 +664,7 @@ export default function AlbumTracker() {
         <button style={tabStyle("faltando")} onClick={() => { setAba("faltando"); setGrupoAberto(null); }}>🔍 FALTANDO ({totalAindaFaltando})</button>
         <button style={tabStyle("tenho")} onClick={() => { setAba("tenho"); setGrupoAberto(null); }}>✅ TENHO ({totalColadas})</button>
         <button style={tabStyle("repetidas")} onClick={() => { setAba("repetidas"); setGrupoAberto(null); }}>🔁 REP. ({repetidasData.length})</button>
+        <button style={{ ...tabStyle("legends"), ...(aba === "legends" ? { color: "#b78cf0", borderBottom: "2px solid #8a5cd0", background: "rgba(138,92,208,0.10)" } : {}) }} onClick={() => setAba("legends")}>⭐ LEGENDS</button>
       </div>
 
       <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 16px" }}>
@@ -927,6 +929,7 @@ export default function AlbumTracker() {
         )}
         </>)}
       </div>
+      {aba === "legends" && <Legends user={user} />}
     </div>
   );
 }
