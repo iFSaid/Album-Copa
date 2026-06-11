@@ -252,7 +252,7 @@ export default function Legends({ user }) {
 
   if (loading) {
     return (
-      <div className="lg-root" style={{ minHeight: "100vh", background: "#020103", fontFamily: fontStack, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div className="lg-root" style={{ minHeight: "100vh", background: "radial-gradient(110% 60% at 50% -8%, #1a1028 0%, #0a0810 55%)", fontFamily: fontStack, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <style>{css}</style>
         <span style={{ color: "rgba(183,140,240,0.5)", fontSize: 14 }}>Carregando Legends...</span>
       </div>
@@ -261,7 +261,7 @@ export default function Legends({ user }) {
 
   if (erro) {
     return (
-      <div className="lg-root" style={{ minHeight: "100vh", background: "#020103", fontFamily: fontStack, display: "flex", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+      <div className="lg-root" style={{ minHeight: "100vh", background: "radial-gradient(110% 60% at 50% -8%, #1a1028 0%, #0a0810 55%)", fontFamily: fontStack, display: "flex", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
         <style>{css}</style>
         <span style={{ color: "#ff8a8a", fontSize: 14 }}>
           Verifique se a tabela <code style={{ background: "rgba(255,138,138,0.12)", padding: "2px 6px", borderRadius: 4 }}>legends</code> existe no Supabase.
@@ -271,7 +271,7 @@ export default function Legends({ user }) {
   }
 
   return (
-    <div className="lg-root" style={{ minHeight: "100vh", background: "#020103", fontFamily: fontStack, paddingBottom: 80, position: "relative", overflow: "hidden" }}>
+    <div className="lg-root" style={{ minHeight: "100vh", background: "radial-gradient(110% 60% at 50% -8%, #1a1028 0%, #0a0810 55%)", fontFamily: fontStack, paddingBottom: 110, position: "relative", overflow: "hidden" }}>
       <style>{css}</style>
 
       {/* Atmosfera: orbes de luz desfocadas */}
