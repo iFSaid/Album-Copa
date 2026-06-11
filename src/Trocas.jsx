@@ -15,6 +15,7 @@ const SECOES = [
 export default function Trocas({ user, t, F, MONO }) {
   const [itens, setItens] = useState({});
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
   const [modo, setModo] = useState("mais");
   const [codigo, setCodigo] = useState("BRA");
   const [display, setDisplay] = useState("");
@@ -26,7 +27,10 @@ export default function Trocas({ user, t, F, MONO }) {
     async function carregar() {
       const { data, error } = await supabase.from("repetidas").select("*");
       if (!ativo) return;
-      if (!error) {
+      if (error) {
+        console.error("repetidas select:", error);
+        setErro(true);
+      } else {
         const map = {};
         (data || []).forEach(r => { map[`${r.code}-${r.num}`] = r; });
         setItens(map);
@@ -76,14 +80,26 @@ export default function Trocas({ user, t, F, MONO }) {
         await supabase.from("repetidas").update({ qty: newQty, updated_by: user?.email || null }).eq("id", existing.id);
       }
     } else if (delta > 0) {
+      // Otimista: mostra imediatamente sem esperar o banco
+      const tempRow = { code, num, qty: 1, updated_by: user?.email || null, id: null };
+      setItens(prev => ({ ...prev, [key]: tempRow }));
+
       const nova = { code, num, qty: 1, updated_by: user?.email || null };
       const { data, error } = await supabase.from("repetidas").insert([nova]).select();
-      if (!error && data && data[0]) {
+      if (!error && data?.[0]) {
+        // Substitui temp pelo row real (com id)
         setItens(prev => ({ ...prev, [key]: data[0] }));
       } else if (error) {
-        // conflito: busca o existente
-        const { data: ex } = await supabase.from("repetidas").select("*").eq("code", code).eq("num", num).maybeSingle();
-        if (ex) setItens(prev => ({ ...prev, [key]: ex }));
+        console.error("repetidas insert:", error.code, error.message);
+        if (error.code === "23505") {
+          // Conflito de unicidade: outra sessão inseriu antes — busca o row real
+          const { data: ex } = await supabase.from("repetidas").select("*").eq("code", code).eq("num", num).maybeSingle();
+          if (ex) setItens(prev => ({ ...prev, [key]: ex }));
+          else setItens(prev => { const n = { ...prev }; delete n[key]; return n; });
+        } else {
+          // Outro erro (permissão, schema…) — desfaz otimismo
+          setItens(prev => { const n = { ...prev }; delete n[key]; return n; });
+        }
       }
     }
     setPop(key);
@@ -130,6 +146,15 @@ export default function Trocas({ user, t, F, MONO }) {
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: t.texto3, fontFamily: F, fontSize: 14 }}>
       Carregando...
+    </div>
+  );
+
+  if (erro) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 32, fontFamily: F, textAlign: "center" }}>
+      <span style={{ color: "#ff8a8a", fontSize: 14, lineHeight: 1.6 }}>
+        Falha ao carregar repetidas.<br />
+        Verifique a tabela <code style={{ background: "rgba(255,138,138,0.12)", padding: "2px 6px", borderRadius: 4 }}>repetidas</code> no Supabase.
+      </span>
     </div>
   );
 
