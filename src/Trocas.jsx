@@ -2,6 +2,24 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "./supabase.js";
 import { Delete, Share } from "lucide-react";
 
+const FLAG = {
+  "FWC": "⭐", "FWC-ESP": "⭐", "FWC-SEL": "⭐",
+  "CC": "🌍",
+  "MEX": "🇲🇽", "RSA": "🇿🇦", "KOR": "🇰🇷", "CZE": "🇨🇿",
+  "CAN": "🇨🇦", "BIH": "🇧🇦", "QAT": "🇶🇦", "SUI": "🇨🇭",
+  "BRA": "🇧🇷", "MAR": "🇲🇦", "HAI": "🇭🇹", "SCO": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  "USA": "🇺🇸", "PAR": "🇵🇾", "AUS": "🇦🇺", "TUR": "🇹🇷",
+  "GER": "🇩🇪", "CUW": "🇨🇼", "CIV": "🇨🇮", "ECU": "🇪🇨",
+  "NED": "🇳🇱", "JPN": "🇯🇵", "SWE": "🇸🇪", "TUN": "🇹🇳",
+  "BEL": "🇧🇪", "EGY": "🇪🇬", "IRN": "🇮🇷", "NZL": "🇳🇿",
+  "ESP": "🇪🇸", "CPV": "🇨🇻", "KSA": "🇸🇦", "URU": "🇺🇾",
+  "FRA": "🇫🇷", "SEN": "🇸🇳", "IRQ": "🇮🇶", "NOR": "🇳🇴",
+  "ARG": "🇦🇷", "ALG": "🇩🇿", "AUT": "🇦🇹", "JOR": "🇯🇴",
+  "POR": "🇵🇹", "COD": "🇨🇩", "UZB": "🇺🇿", "COL": "🇨🇴",
+  "ENG": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "CRO": "🇭🇷", "GHA": "🇬🇭", "PAN": "🇵🇦",
+};
+const flag = (code) => FLAG[code] || FLAG[code.split("-")[0]] || "⚽";
+
 const SECOES = [
   "FWC-ESP", "FWC-SEL", "CC",
   "MEX", "RSA", "KOR", "CZE", "CAN", "BIH", "QAT", "SUI",
@@ -134,7 +152,7 @@ export default function Trocas({ user, t, F, MONO }) {
     const linhas = ["🔁 REPETIDAS — Álbum Copa 2026 (FSaid & Romeo)\n"];
     grupos.forEach(([code, arr]) => {
       arr.forEach(({ num, qty }) => {
-        linhas.push(`${code} ${String(num).padStart(2, "0")} ×${qty}`);
+        linhas.push(`${flag(code)} ${code} ${String(num).padStart(2, "0")} ×${qty}`);
       });
     });
     linhas.push(`\nTotal: ${total} figurinhas (${distintas} números distintos)`);
@@ -202,7 +220,7 @@ export default function Trocas({ user, t, F, MONO }) {
             return (
               <button key={s} className="nj-press" onClick={() => setCodigo(s)}
                 style={{ flexShrink: 0, padding: "7px 13px", borderRadius: 99, border: `0.5px solid ${ativo ? `rgba(${dimModo},0.55)` : t.borda}`, cursor: "pointer", fontFamily: MONO, fontSize: 12.5, fontWeight: 800, letterSpacing: "0.04em", background: ativo ? `rgba(${dimModo},0.18)` : "rgba(255,255,255,0.04)", color: ativo ? corModo : t.texto3 }}>
-                {s}
+                {flag(s)} {s}
               </button>
             );
           })}
@@ -253,7 +271,7 @@ export default function Trocas({ user, t, F, MONO }) {
       ) : grupos.map(([code, arr], gi) => (
         <div key={code} className="nj-in" style={{ marginBottom: 14, animationDelay: `${0.18 + gi * 0.04}s` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 4px 8px" }}>
-            <span style={{ color: t.texto, fontSize: 13, fontWeight: 800, fontFamily: MONO, letterSpacing: "0.06em" }}>{code}</span>
+            <span style={{ color: t.texto, fontSize: 13, fontWeight: 800, fontFamily: MONO, letterSpacing: "0.06em" }}>{flag(code)} {code}</span>
             <span style={{ color: t.texto3, fontSize: 11, fontFamily: MONO }}>{arr.reduce((a, x) => a + x.qty, 0)} un.</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>

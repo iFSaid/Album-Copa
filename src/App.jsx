@@ -204,7 +204,7 @@ export default function App() {
     <div className="nj-root" style={{ minHeight: "100vh", fontFamily: F, background: fundo, transition: "background 0.5s", position: "relative" }}>
       <style>{css}</style>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        {aba === "legends" && <Legends user={user} />}
+        {aba === "legends" && <Legends user={user} tema={tema} />}
         {aba === "trocas" && <Trocas user={user} t={t} F={F} MONO={MONO} />}
         {aba === "album" && (
           <Memorial
